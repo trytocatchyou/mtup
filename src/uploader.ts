@@ -1,4 +1,4 @@
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 
 /**
  * 文件上传配置接口
@@ -6,19 +6,19 @@ import { EventEmitter } from 'events';
 export interface UploadConfig {
   /** 允许上传的文件类型 */
   accept?: string;
-  
+
   /** 是否多文件上传 */
   multiple?: boolean;
-  
+
   /** 最大重试次数 */
   maxRetries?: number;
-  
+
   /** 上传超时时间(毫秒) */
   timeout?: number;
-  
+
   /** 单文件最大尺寸(字节) */
   maxSize?: number;
-  
+
   /** 自定义上传处理函数 */
   customUploader?: (file: File, uploadOptions: UploadOptions) => Promise<any>;
 }
@@ -29,13 +29,13 @@ export interface UploadConfig {
 export interface UploadOptions {
   /** 上传目标URL */
   url?: string;
-  
+
   /** HTTP请求方法 */
-  method?: 'POST' | 'PUT' | 'PATCH';
-  
+  method?: "POST" | "PUT" | "PATCH";
+
   /** 自定义请求头 */
   headers?: Record<string, string>;
-  
+
   /** 额外携带的数据 */
   data?: Record<string, any>;
 }
@@ -44,7 +44,7 @@ export interface UploadOptions {
  * 上传事件类型接口
  */
 export interface UploadEvent {
-  type: 'progress' | 'error' | 'success' | 'retry' | 'select';
+  type: "progress" | "error" | "success" | "retry" | "select";
   payload: any;
 }
 
@@ -60,22 +60,22 @@ class Uploader {
 
   constructor(config: UploadConfig = {}) {
     this.config = {
-      accept: '*',
+      accept: "*",
       multiple: false,
       maxRetries: 3,
       timeout: 30000,
       maxSize: 10 * 1024 * 1024,
-      ...config
+      ...config,
     };
-    
+
     this.eventEmitter = new EventEmitter();
     this.fileCache = new Map();
     this.defaultUploadOptions = {
-      method: 'POST',
-      url: '/upload'
+      method: "POST",
+      url: "/upload",
     };
-    
-   this.inputElement = this.createInputElement(this.config);
+
+    this.inputElement = this.createInputElement(this.config);
   }
 
   /**
@@ -83,9 +83,9 @@ class Uploader {
    * @param options 上传配置选项
    */
   setDefaultUploadOptions(options: UploadOptions): void {
-    this.defaultUploadOptions = { 
-      ...this.defaultUploadOptions, 
-      ...options 
+    this.defaultUploadOptions = {
+      ...this.defaultUploadOptions,
+      ...options,
     };
   }
 
@@ -93,12 +93,12 @@ class Uploader {
    * 创建文件选择输入元素
    */
   private createInputElement(config: UploadConfig): HTMLInputElement {
-    const inputEle: HTMLInputElement = document.createElement('input');
-    inputEle.type = 'file';
+    const inputEle: HTMLInputElement = document.createElement("input");
+    inputEle.type = "file";
     inputEle.accept = config.accept!;
     inputEle.multiple = config.multiple!;
-    
-    inputEle.addEventListener('change', (event) => {
+
+    inputEle.addEventListener("change", (event) => {
       const files = (event.target as HTMLInputElement).files;
       if (files) {
         const selectedFiles = Array.from(files);
@@ -113,20 +113,18 @@ class Uploader {
    * @param files 选择的文件列表
    */
   private handleFileSelection(files: File[]): void {
-    const validFiles = files.filter(file => 
-      file.size <= (this.config.maxSize || Infinity)
-    );
+    const validFiles = files.filter((file) => file.size <= (this.config.maxSize || Infinity));
 
     if (validFiles.length !== files.length) {
-      this.emitEvent('error', '部分文件超过最大尺寸限制');
+      this.emitEvent("error", "部分文件超过最大尺寸限制");
     }
 
-    validFiles.forEach(file => {
+    validFiles.forEach((file) => {
       const fileKey = this.generateFileKey(file);
       this.fileCache.set(fileKey, file);
     });
 
-    this.emitEvent('select', validFiles);
+    this.emitEvent("select", validFiles);
   }
 
   /**
@@ -151,9 +149,9 @@ class Uploader {
    */
   upload(file: File, uploadOptions?: UploadOptions): Promise<any> {
     const fileKey = this.generateFileKey(file);
-    const mergedOptions = { 
-      ...this.defaultUploadOptions, 
-      ...uploadOptions 
+    const mergedOptions = {
+      ...this.defaultUploadOptions,
+      ...uploadOptions,
     };
 
     return new Promise(async (resolve, reject) => {
@@ -162,24 +160,22 @@ class Uploader {
       const attemptUpload = async () => {
         try {
           const uploadFunction = this.config.customUploader || this.defaultUploader;
-          
+
           const uploadPromise = uploadFunction(file, mergedOptions);
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error('Upload timeout')), this.config.timeout)
-          );
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Upload timeout")), this.config.timeout));
 
           const result = await Promise.race([uploadPromise, timeoutPromise]);
 
-          this.emitEvent('success', result);
+          this.emitEvent("success", result);
           this.fileCache.delete(fileKey);
           resolve(result);
         } catch (error) {
-          this.emitEvent('error', error);
+          this.emitEvent("error", error);
 
           if (retries < this.config.maxRetries!) {
             retries++;
-            this.emitEvent('retry', { attempt: retries, error });
-            await new Promise(resolve => setTimeout(resolve, 1000 * retries));
+            this.emitEvent("retry", { attempt: retries, error });
+            await new Promise((resolve) => setTimeout(resolve, 1000 * retries));
             await attemptUpload();
           } else {
             reject(error);
@@ -201,10 +197,10 @@ class Uploader {
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) {
         const percentComplete = (event.loaded / event.total) * 100;
-        this.emitEvent('progress', { 
-          total: event.total, 
-          loaded: event.loaded, 
-          percent: percentComplete 
+        this.emitEvent("progress", {
+          total: event.total,
+          loaded: event.loaded,
+          percent: percentComplete,
         });
       }
     };
@@ -219,7 +215,7 @@ class Uploader {
    */
   private defaultUploader(file: File, options?: UploadOptions): Promise<any> {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append("file", file);
 
     // 添加额外的数据
     if (options?.data) {
@@ -228,11 +224,11 @@ class Uploader {
       });
     }
 
-    return fetch(options?.url || '/upload', {
-      method: options?.method || 'POST',
+    return fetch(options?.url || "/upload", {
+      method: options?.method || "POST",
       headers: options?.headers,
-      body: formData
-    }).then(response => response.json());
+      body: formData,
+    }).then((response) => response.json());
   }
 
   /**
@@ -257,8 +253,8 @@ class Uploader {
    * @param type 事件类型
    * @param payload 事件携带的数据
    */
-  private emitEvent(type: UploadEvent['type'], payload: any): void {
-    this.eventEmitter.emit('upload', { type, payload });
+  private emitEvent(type: UploadEvent["type"], payload: any): void {
+    this.eventEmitter.emit("upload", { type, payload });
   }
 }
 
