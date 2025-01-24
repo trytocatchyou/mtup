@@ -1,6 +1,6 @@
 {
   "name": "mtup",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "an independent universal upload component based on typescript and original html",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
